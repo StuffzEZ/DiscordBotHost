@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  discord-bot-host:
+    build: .
+    container_name: discord-bot-host
+    ports:
+      - "3000:3000"
+    volumes:
+      - bot-data:/bot-data
+    restart: unless-stopped
+
+volumes:
+  bot-data:

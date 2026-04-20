@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BotForge — Discord Bot Host</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0b0f;
+    --surface: #111218;
+    --surface2: #181920;
+    --surface3: #1e1f28;
+    --border: #2a2b36;
+    --border2: #3a3b48;
+    --accent: #5865F2;
+    --accent-glow: rgba(88,101,242,0.25);
+    --accent2: #57F287;
+    --accent3: #FEE75C;
+    --red: #ED4245;
+    --text: #e8e9f0;
+    --text2: #9899a8;
+    --text3: #5a5b6a;
+    --log-time: #5865F2;
+    --log-err: #ED4245;
+    --log-sys: #57F287;
+    --radius: 8px;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-display: 'Syne', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 56px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text3);
+    transition: all 0.3s;
+  }
+
+  .status-pill.running { border-color: var(--accent2); background: rgba(87,242,135,0.08); }
+  .status-pill.running .status-dot { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); animation: pulse 2s infinite; }
+  .status-pill.stopped .status-dot { background: var(--red); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+
+  /* LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-rows: 1fr;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  nav {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 16px 12px;
+    gap: 4px;
+  }
+
+  .nav-section {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text3);
+    text-transform: uppercase;
+    padding: 12px 10px 6px;
+    margin-top: 8px;
+  }
+  .nav-section:first-child { margin-top: 0; }
+
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    transition: all 0.15s;
+    width: 100%;
+    text-align: left;
+  }
+
+  .nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .nav-btn.active { background: rgba(88,101,242,0.15); color: var(--accent); border: 1px solid rgba(88,101,242,0.25); }
+  .nav-btn .icon { font-size: 16px; width: 20px; text-align: center; }
+
+  /* BOT CONTROLS IN SIDEBAR */
+  .controls {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.15s;
+    width: 100%;
+  }
+
+  .btn-start { background: rgba(87,242,135,0.15); color: var(--accent2); border: 1px solid rgba(87,242,135,0.3); }
+  .btn-start:hover { background: rgba(87,242,135,0.25); }
+  .btn-stop { background: rgba(237,66,69,0.12); color: var(--red); border: 1px solid rgba(237,66,69,0.25); }
+  .btn-stop:hover { background: rgba(237,66,69,0.22); }
+  .btn-restart { background: rgba(254,231,92,0.1); color: var(--accent3); border: 1px solid rgba(254,231,92,0.2); }
+  .btn-restart:hover { background: rgba(254,231,92,0.18); }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #4752c4; }
+  .btn-ghost { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--surface3); color: var(--text); }
+
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* MAIN CONTENT */
+  main {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tab-panel {
+    display: none;
+    flex: 1;
+    overflow: hidden;
+    flex-direction: column;
+  }
+  .tab-panel.active { display: flex; }
+
+  /* PANEL HEADER */
+  .panel-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  .panel-actions { display: flex; gap: 8px; }
+
+  /* LOG PANEL */
+  #panel-logs { background: var(--bg); }
+
+  .log-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .log-container::-webkit-scrollbar { width: 6px; }
+  .log-container::-webkit-scrollbar-track { background: transparent; }
+  .log-container::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  .log-line {
+    padding: 1px 24px;
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    transition: background 0.1s;
+  }
+  .log-line:hover { background: var(--surface); }
+
+  .log-time { color: var(--log-time); flex-shrink: 0; }
+  .log-msg { color: var(--text2); word-break: break-word; }
+  .log-line.err .log-msg { color: var(--log-err); }
+  .log-line.sys .log-msg { color: var(--log-sys); }
+
+  .log-empty {
+    padding: 60px 24px;
+    color: var(--text3);
+    text-align: center;
+  }
+
+  /* CODE EDITOR */
+  #panel-code .code-wrap {
+    flex: 1;
+    padding: 16px 24px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .editor-info {
+    background: rgba(88,101,242,0.08);
+    border: 1px solid rgba(88,101,242,0.2);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    color: var(--text2);
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  textarea {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    padding: 16px;
+    resize: none;
+    outline: none;
+    tab-size: 2;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+
+  /* ENV VARS */
+  #panel-env .env-wrap {
+    flex: 1;
+    padding: 16px 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .env-table {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .env-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 36px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  input[type="text"], input[type="password"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 9px 12px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  input:focus { border-color: var(--accent); }
+
+  .env-key { color: var(--accent3); }
+  .env-val { color: var(--accent2); }
+
+  .btn-del {
+    width: 32px; height: 32px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text3);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .btn-del:hover { background: rgba(237,66,69,0.12); border-color: var(--red); color: var(--red); }
+
+  .env-add-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  /* TOAST */
+  .toast-container {
+    position: fixed;
+    bottom: 20px; right: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  .toast {
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    font-size: 12px;
+    color: var(--text);
+    animation: slideIn 0.25s ease, fadeOut 0.3s 2.5s ease forwards;
+    pointer-events: all;
+  }
+  .toast.success { border-color: rgba(87,242,135,0.4); color: var(--accent2); }
+  .toast.error { border-color: rgba(237,66,69,0.4); color: var(--red); }
+
+  @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes fadeOut { to { opacity: 0; transform: translateX(10px); } }
+
+  /* Badge */
+  .badge {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(88,101,242,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(88,101,242,0.3);
+  }
+
+  /* Auto-scroll toggle */
+  .toggle-wrap {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text2);
+  }
+  .toggle {
+    position: relative; width: 34px; height: 18px;
+    cursor: pointer;
+  }
+  .toggle input { display: none; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--surface3);
+    border-radius: 9px;
+    border: 1px solid var(--border2);
+    transition: all 0.2s;
+  }
+  .toggle input:checked + .toggle-track { background: rgba(88,101,242,0.4); border-color: var(--accent); }
+  .toggle-thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px;
+    background: var(--text2);
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+  .toggle input:checked ~ .toggle-thumb { left: 18px; background: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    BotForge
+  </div>
+  <div class="status-pill stopped" id="status-pill">
+    <div class="status-dot"></div>
+    <span id="status-text">Stopped</span>
+  </div>
+</header>
+
+<div class="layout">
+  <nav>
+    <div class="nav-section">Dashboard</div>
+    <button class="nav-btn active" onclick="switchTab('logs')" id="nav-logs">
+      <span class="icon">📋</span> Logs
+    </button>
+    <button class="nav-btn" onclick="switchTab('code')" id="nav-code">
+      <span class="icon">📝</span> Bot Code
+    </button>
+    <button class="nav-btn" onclick="switchTab('env')" id="nav-env">
+      <span class="icon">🔑</span> Env Vars
+    </button>
+
+    <div class="controls">
+      <button class="btn btn-start" id="btn-start" onclick="botStart()">▶ Start Bot</button>
+      <button class="btn btn-stop" id="btn-stop" onclick="botStop()" disabled>■ Stop Bot</button>
+      <button class="btn btn-restart" onclick="botRestart()">↺ Restart</button>
+    </div>
+  </nav>
+
+  <main>
+    <!-- LOGS -->
+    <div class="tab-panel active" id="panel-logs">
+      <div class="panel-header">
+        <div class="panel-title">Live Logs</div>
+        <div class="panel-actions">
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="autoscroll" checked>
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+            Auto-scroll
+          </div>
+          <button class="btn btn-ghost" style="padding:6px 12px;width:auto" onclick="clearLogs()">🗑 Clear</button>
+        </div>
+      </div>
+      <div class="log-container" id="log-container">
+        <div class="log-empty" id="log-empty">No logs yet. Start your bot to see output here.</div>
+      </div>
+    </div>
+
+    <!-- CODE -->
+    <div class="tab-panel" id="panel-code">
+      <div class="panel-header">
+        <div class="panel-title">Bot Code <span class="badge">bot.js</span></div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" style="padding:8px 16px;width:auto" onclick="saveCode()">💾 Save</button>
+        </div>
+      </div>
+      <div class="code-wrap">
+        <div class="editor-info">
+          💡 Your bot code runs in Node.js. Install packages by adding them to the container or use a custom Dockerfile.
+          The code file is saved to <strong>/bot-data/bot.js</strong> and persists across restarts.
+        </div>
+        <textarea id="code-editor" spellcheck="false" placeholder="// Paste your Discord bot code here...
+// Example with discord.js:
+// const { Client, GatewayIntentBits } = require('discord.js');
+// const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+// client.login(process.env.DISCORD_TOKEN);"></textarea>
+      </div>
+    </div>
+
+    <!-- ENV -->
+    <div class="tab-panel" id="panel-env">
+      <div class="panel-header">
+        <div class="panel-title">Environment Variables</div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" style="padding:8px 16px;width:auto" onclick="saveEnv()">💾 Save</button>
+        </div>
+      </div>
+      <div class="env-wrap">
+        <div class="env-table" id="env-table"></div>
+        <div class="env-add-row">
+          <input type="text" id="new-key" placeholder="VARIABLE_NAME" style="width:200px">
+          <input type="text" id="new-val" placeholder="value">
+          <button class="btn btn-primary" style="padding:9px 14px;width:auto;flex-shrink:0" onclick="addEnvRow()">+ Add</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+let ws, autoScroll = true;
+let envVars = {};
+
+// ─── WebSocket ───────────────────────────────────────────
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+
+  ws.onmessage = e => {
+    const { type, data } = JSON.parse(e.data);
+    if (type === 'log') appendLogLine(data);
+    if (type === 'history') { clearLogUI(); data.forEach(appendLogLine); }
+    if (type === 'status') setStatus(data);
+    if (type === 'log_clear') clearLogUI();
+  };
+
+  ws.onclose = () => setTimeout(connectWS, 2000);
+}
+
+// ─── Logs ─────────────────────────────────────────────────
+function appendLogLine(line) {
+  const empty = document.getElementById('log-empty');
+  if (empty) empty.remove();
+
+  const c = document.getElementById('log-container');
+  const div = document.createElement('div');
+  div.className = 'log-line';
+
+  const m = line.match(/^\[(.+?)\] (.*)$/);
+  if (m) {
+    const msg = m[2];
+    if (msg.startsWith('ERR ')) div.classList.add('err');
+    else if (msg.startsWith('▶') || msg.startsWith('■') || msg.startsWith('🔄')) div.classList.add('sys');
+
+    div.innerHTML = `<span class="log-time">[${m[1]}]</span><span class="log-msg">${escHtml(m[2])}</span>`;
+  } else {
+    div.innerHTML = `<span class="log-msg">${escHtml(line)}</span>`;
+  }
+
+  c.appendChild(div);
+  if (document.getElementById('autoscroll').checked) c.scrollTop = c.scrollHeight;
+}
+
+function clearLogUI() {
+  const c = document.getElementById('log-container');
+  c.innerHTML = '<div class="log-empty" id="log-empty">No logs yet. Start your bot to see output here.</div>';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function clearLogs() {
+  await fetch('/api/logs', { method: 'DELETE' });
+}
+
+// ─── Status ──────────────────────────────────────────────
+function setStatus(s) {
+  const pill = document.getElementById('status-pill');
+  const txt = document.getElementById('status-text');
+  pill.className = 'status-pill ' + s;
+  txt.textContent = s === 'running' ? 'Running' : 'Stopped';
+  document.getElementById('btn-start').disabled = s === 'running';
+  document.getElementById('btn-stop').disabled = s === 'stopped';
+}
+
+// ─── Bot Controls ─────────────────────────────────────────
+async function botStart() {
+  const r = await fetch('/api/bot/start', { method: 'POST' });
+  const d = await r.json();
+  if (!d.ok) toast(d.msg, 'error'); else toast('Bot starting…', 'success');
+}
+
+async function botStop() {
+  await fetch('/api/bot/stop', { method: 'POST' });
+  toast('Bot stopping…');
+}
+
+async function botRestart() {
+  await fetch('/api/bot/restart', { method: 'POST' });
+  toast('Restarting…', 'success');
+}
+
+// ─── Code ─────────────────────────────────────────────────
+async function loadCode() {
+  const r = await fetch('/api/code');
+  const d = await r.json();
+  document.getElementById('code-editor').value = d.code;
+}
+
+async function saveCode() {
+  const code = document.getElementById('code-editor').value;
+  await fetch('/api/code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({code}) });
+  toast('Code saved!', 'success');
+}
+
+// ─── Env ──────────────────────────────────────────────────
+async function loadEnv() {
+  const r = await fetch('/api/env');
+  envVars = await r.json();
+  renderEnv();
+}
+
+function renderEnv() {
+  const table = document.getElementById('env-table');
+  table.innerHTML = '';
+  Object.entries(envVars).forEach(([k, v]) => addEnvRowUI(k, v));
+}
+
+function addEnvRowUI(k = '', v = '') {
+  const table = document.getElementById('env-table');
+  const row = document.createElement('div');
+  row.className = 'env-row';
+  row.innerHTML = `
+    <input class="env-key" type="text" placeholder="KEY" value="${escHtml(k)}">
+    <input class="env-val" type="text" placeholder="value" value="${escHtml(v)}">
+    <button class="btn-del" onclick="this.closest('.env-row').remove()">✕</button>
+  `;
+  table.appendChild(row);
+}
+
+function addEnvRow() {
+  const k = document.getElementById('new-key').value.trim();
+  const v = document.getElementById('new-val').value;
+  if (!k) { toast('Enter a variable name', 'error'); return; }
+  addEnvRowUI(k, v);
+  document.getElementById('new-key').value = '';
+  document.getElementById('new-val').value = '';
+}
+
+async function saveEnv() {
+  const rows = document.querySelectorAll('#env-table .env-row');
+  const vars = {};
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const k = inputs[0].value.trim();
+    const v = inputs[1].value;
+    if (k) vars[k] = v;
+  });
+  await fetch('/api/env', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(vars) });
+  toast('Env vars saved!', 'success');
+}
+
+// ─── Tabs ─────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+
+// ─── Toast ───────────────────────────────────────────────
+function toast(msg, type = '') {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ─── Key binding: Tab in textarea ─────────────────────────
+document.getElementById('code-editor').addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = e.target.selectionStart;
+    e.target.value = e.target.value.slice(0, s) + '  ' + e.target.value.slice(e.target.selectionEnd);
+    e.target.selectionStart = e.target.selectionEnd = s + 2;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveCode(); }
+});
+
+// ─── Init ─────────────────────────────────────────────────
+connectWS();
+loadCode();
+loadEnv();
+fetch('/api/bot/status').then(r => r.json()).then(d => setStatus(d.status));
+</script>
+</body>
+</html>
